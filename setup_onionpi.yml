@@ -75,6 +75,7 @@
 
   #
   # Pin wlan device names
+  # see: https://www.raspberrypi.org/forums/viewtopic.php?f=36&t=198946
   #
   - name: pin wlan1 to builtin wifi device
     become: true
