@@ -2,7 +2,7 @@
 Turn a standard Raspbian install into a [tor](https://torproject.org)-ified
 wifi access point with [ansible](https://www.ansible.com/).
 
-This is the ``Zwiebelkuchen`` (German for onion pie) edition of stock adafruit
+This is the ``gogoonion`` edition of stock adafruit
 onion-pi.
 
 This build is different from the original in some minor details. See the list
@@ -178,7 +178,7 @@ where `wlan0` is the interface name displayed before.
 There should be one line starting with `inet` or `inet6` stating the current
 IP.
 
-Now try to connect to your zwiebelkuchen via SSH:
+Now try to connect to your gogoonion via SSH:
 
     $ ssh pi@<IP-OF-YOUR-RASPBERRY-PI>
 
@@ -189,9 +189,9 @@ later on.
 ## Prepare `ansible`
 
 
-We will use `ansible` to provision `zwiebelkuchen` with all software/settings
+We will use `ansible` to provision `gogoonion` with all software/settings
 needed. Make sure you have version 2.x installed on the host where you also
-have SSH access to the `zwiebelkuchen`.
+have SSH access to the `gogoonion`.
 
 In the end the following command should succeed without any error message:
 
@@ -201,9 +201,9 @@ and output lots of infos gathered about the raspi (please mind the trailing
 comma behind the IP).
 
 
-## Run `ansible` turn ordinary raspi into a `zwiebelkuchen`
+## Run `ansible` turn ordinary raspi into a `gogoonion`
 
-Before we proceed, we need internet access from the `zwiebelkuchen`.
+Before we proceed, we need internet access from the `gogoonion`.
 
 Log into your `raspi` and update the system:
 
@@ -215,10 +215,10 @@ system restart is recommended or even required before you proceed.
 
     (raspi) $ sudo reboot
 
-After reboot, run the ansible playbook `setup_zwiebelkuchen.yml` from the computer
-which has SSH access to your `zwiebelkuchen`:
+After reboot, run the ansible playbook `setup_onionpi.yml` from the computer
+which has SSH access to your `gogoonion`:
 
-    $ ansible-playbook -i <RASPI-IP>, -b -u pi -k setup_zwiebelkuchen.yml
+    $ ansible-playbook -i <RASPI-IP>, -b -u pi -k setup_gogoonion.yml
 
 This step will normally take some time. Afterwards restart the raspi
 
@@ -227,12 +227,12 @@ This step will normally take some time. Afterwards restart the raspi
 and enjoy.
 
 
-## Access your `zwiebelkuchen`
+## Access your `gogoonion`
 
 Did it work? You can try with your laptop.
 
 First, look what networks are available to connect to. There should be an
-additional network called ``zwiebelkuchen``. Connect to it.
+additional network called ``gogoonion``. Connect to it.
 
 The network is encrypted and therefore we need a password. The default password is
 

@@ -3,7 +3,7 @@
 #
 # Call from remote:
 #
-#   $ ansible-playbook -i 192.168.178.13, -u pi -k setup_zwiebelkuchen.yml
+#   $ ansible-playbook -i 192.168.178.13, -u pi -k setup_onionpi.yml
 #
 # with the real IP used instead.
 #
@@ -14,7 +14,7 @@
   become: false
   become_user: root
   vars:
-      - hostname: "zwiebelkuchen"
+      - hostname: "gogoonion"
       - dns_servers: "213.73.91.35, 85.214.20.141"
 
   handlers:
