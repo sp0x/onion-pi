@@ -195,7 +195,7 @@ have SSH access to the `gogoonion`.
 
 In the end the following command should succeed without any error message:
 
-    (laptop) $ ansible -i <RASPI-IP>, all -b -k -u pi -m setup
+    (laptop) $ ansible -i <RASPI-IP>, all --become --ask-pass --ask-become-pass --user pi --module-name setup
 
 and output lots of infos gathered about the raspi (please mind the trailing
 comma behind the IP).
