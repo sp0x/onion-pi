@@ -66,3 +66,12 @@
   - name: change full name of email sender
     become: true
     command: chfn --full-name "{{ pi_username }} @ {{ hostname }}" {{ pi_username }}
+
+  - name: Sending an e-mail using the remote machine, not the Ansible controller node
+    mail:
+      host: localhost
+      port: 25
+      from: root@localhost
+      to: jason@localhost
+      subject: Ansible-report
+      body: System {{ ansible_hostname }} has been successfully provisioned.
