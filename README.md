@@ -218,7 +218,7 @@ system restart is recommended or even required before you proceed.
 After reboot, run the ansible playbook `setup_onionpi.yml` from the computer
 which has SSH access to your `gogoonion`:
 
-    $ ansible-playbook -i <RASPI-IP>, -b -u pi -k setup_gogoonion.yml
+    $ ansible-playbook -i <RASPI-IP>, --become --ask-pass --ask-become-pass --user pi setup_onionpi.yml
 
 This step will normally take some time. Afterwards restart the raspi
 
