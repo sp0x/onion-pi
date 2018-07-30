@@ -1,0 +1,68 @@
+# This ansible playbook performs setup of a RaspberryPi providing mail support.
+#
+# Call from remote:
+#
+#   $ ansible-playbook -i 192.168.1.131, --become --ask-pass --ask-become-pass --user jason setup_mail.yml --extra-vars "gmail_username=me gmail_password=secret"
+#
+# with the real IP used instead.
+#
+# You may want to fiddle with the settings in `vars`.
+#
+- hosts: all
+  become: false
+  become_user: root
+  vars:
+      - hostname: "onionpi"
+      - pi_username: jason
+      - gmail_app_username: "{{ gmail_username }}"
+      - gmail_app_password: "{{ gmail_password }}"
+
+  tasks:
+  - name: Update system
+    become: true
+    apt: upgrade=safe update_cache=yes cache_valid_time=36000
+
+  - name: Install additionally needed packages
+    become: true
+    package:
+        name: "{{ item }}"
+        state: present
+    with_items:
+        - "exim4"
+
+  - name: setup exim4-config /etc/exim4/update-exim4.conf.conf
+    become: true
+    template:
+        src: "update-exim4.conf.conf.j2"
+        dest: "/etc/exim4/update-exim4.conf.conf"
+        owner: root
+        group: root
+        mode: 0644
+        backup: yes
+
+  - name: add account info to /etc/exim4/passwd.client
+    become: true
+    blockinfile:
+        dest: "/etc/exim4/passwd.client"
+        block: |
+            gmail-smtp.l.google.com:{{ gmail_app_username }}@gmail.com:{{ gmail_app_password }}
+            *.google.com:{{ gmail_app_username }}@gmail.com:{{ gmail_app_password }}
+            smtp.gmail.com:{{ gmail_app_username }}@gmail.com:{{ gmail_app_password }}
+
+  - name: setup mail /etc/aliases
+    become: true
+    template:
+        src: "aliases.j2"
+        dest: "/etc/aliases"
+        owner: root
+        group: root
+        mode: 0644
+        backup: yes
+
+  - name: reload aliases
+    become: true
+    command: newaliases
+
+  - name: change full name of email sender
+    become: true
+    command: chfn --full-name "{{ pi_username }} @ {{ hostname }}" {{ pi_username }}
