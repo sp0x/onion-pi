@@ -14,8 +14,8 @@
   become: false
   become_user: root
   vars:
-      - hostname: "gogoonion"
-      - dns_servers: "213.73.91.35, 85.214.20.141"
+      - hostname: "onionpi"
+      - dns_servers: "8.8.8.8, 8.8.4.4"
 
   handlers:
   - name: restart dhcpd
@@ -40,10 +40,14 @@
   tasks:
   - name: Update system
     become: true
-    apt: upgrade=safe update_cache=yes
+    tags:
+      - update
+    apt: upgrade=safe update_cache=yes cache_valid_time=36000
 
   - name: Install additionally needed packages
     become: true
+    tags:
+      - install
     package:
         name: "{{ item }}"
         state: present
@@ -58,15 +62,28 @@
   #
   # Enable unattended upgrades
   #
-  - name: enable unattended upgrades setting an origin-pattern
+  - name: enable unattended Raspbian upgrades setting an origin-pattern
     become: true
+    tags:
+      - unattended
     replace:
         dest: "/etc/apt/apt.conf.d/50unattended-upgrades"
-        regexp: '^//      "o=Raspbian,n=jessie";'
-        replace: '        "o=Raspbian,n=jessie";'
+        regexp: '^//      "o=Debian,n=jessie";'
+        replace: '        "o=Debian,n=jessie";'
+
+  - name: enable unattended Raspbian-Security upgrades setting an origin-pattern
+    become: true
+    tags:
+      - unattended-security
+    replace:
+        dest: "/etc/apt/apt.conf.d/50unattended-upgrades"
+        regexp: '^//      "o=Debian,n=jessie,l=Debian-Security";'
+        replace: '        "o=Debian,n=jessie,l=Debian-Security";'
 
   - name: start unattended-upgrades every other hour
     become: true
+    tags:
+      - cron-updates
     cron:
         name: "system-update"
         minute: '39'
@@ -76,11 +93,13 @@
   #
   # Pin wlan device names
   #
-  - name: pin wlan1 to builtin wifi device
+  - name: pin wlan0 to builtin wifi device
     become: true
+    tags:
+      - pin-wifi
     copy:
-        src: "70-persistent-net.rules"
-        dest: "/etc/udev/rules.d/70-persistent-net.rules"
+        src: "76-netnames.rules"
+        dest: "/etc/udev/rules.d/76-netnames.rules"
         owner: root
         group: root
         mode: 0644
@@ -91,14 +110,19 @@
   #
   - name: tweak dhcpd.conf - unset preset domain-name
     become: true
+    tags:
+      - dhcpd-name
     replace:
         dest: "/etc/dhcp/dhcpd.conf"
         regexp: '^option domain-name "example\.org";'
         replace: '#option domain-name "example.org";'
+        backup: yes
     notify: restart dhcpd
 
   - name: tweak dhcpd.conf - unset preset domain-name-servers
     become: true
+    tags:
+      - dhcpd-servers
     replace:
         dest: "/etc/dhcp/dhcpd.conf"
         regexp: '^option domain-name-servers (.*);$'
@@ -107,6 +131,8 @@
 
   - name: tweak dhcpd.conf - set authoritative flag
     become: true
+    tags:
+      - dhcpd-authoritative
     replace:
         dest: "/etc/dhcp/dhcpd.conf"
         regexp: '^#authoritative;$'
@@ -115,6 +141,8 @@
 
   - name: tweak dhcpd.conf - add new subnet
     become: true
+    tags:
+      - dhcpd-subnet
     blockinfile:
         dest: "/etc/dhcp/dhcpd.conf"
         block: |
@@ -129,16 +157,30 @@
             }
     notify: restart dhcpd
 
-  - name: set wlan1 as dhcp-serviced device
+  - name: set wlan1 as dhcp-serviced device for IPV4
     become: true
+    tags:
+      - wlan1v4
     replace:
         dest: "/etc/default/isc-dhcp-server"
-        regexp: '^INTERFACES=""'
-        replace: 'INTERFACES="wlan1"'
+        regexp: '^INTERFACESv4=""'
+        replace: 'INTERFACESv4="wlan1"'
+    notify: restart dhcpd
+
+  - name: set wlan1 as dhcp-serviced device for IPV6
+    become: true
+    tags:
+      - wlan1v6
+    replace:
+        dest: "/etc/default/isc-dhcp-server"
+        regexp: '^INTERFACESv6=""'
+        replace: 'INTERFACESv6="wlan1"'
     notify: restart dhcpd
 
   - name: setup static ip config for wlan1
     become: true
+    tags:
+      - static-wlan1
     copy:
         src: "interfaces.tmpl"
         dest: "/etc/network/interfaces"
@@ -152,6 +194,8 @@
   #
   - name: install hostapd.conf
     become: true
+    tags:
+      - hostapd-install
     copy:
         src: "hostapd.conf.tmpl"
         dest: "/etc/hostapd/hostapd.conf"
@@ -163,14 +207,35 @@
 
   - name: tell hostapd.conf location
     become: true
+    tags:
+      - hostapd-location
     replace:
         dest: "/etc/default/hostapd"
         regexp: '^#DAEMON_CONF=""'
         replace: 'DAEMON_CONF="/etc/hostapd/hostapd.conf"'
     notify: restart hostapd
 
+  - name: configure /etc/init.d/hostapd
+    become: true
+    tags:
+      - hostapd-init.d
+    replace:
+        dest: "/etc/init.d/hostapd"
+        regexp: '^DAEMON_CONF='
+        replace: 'DAEMON_CONF=/etc/hostapd/hostapd.conf'
+    notify: restart hostapd
+
+
+
+
+
+
+
+
   - name: deactivate ipv4 forwarding at boot time
     become: true
+    tags:
+      - deactivate-ipv4
     replace:
         dest: "/etc/sysctl.conf"
         regexp: "^net.ipv4.ip_forward=1"
@@ -182,6 +247,8 @@
   #
   - name: tweak torrc
     become: true
+    tags:
+      - torrc
     blockinfile:
         dest: "/etc/tor/torrc"
         insertafter: "^## https://www.torproject.org/docs/faq#torrc"
@@ -190,10 +257,9 @@
             VirtualAddrNetwork 10.192.0.0/10
             AutomapHostsSuffixes .onion,.exit
             AutomapHostsOnResolve 1
-            TransPort 9040
-            TransListenAddress 192.168.42.1
-            DNSPort 53
-            DNSListenAddress 192.168.42.1
+            TransPort 192.168.42.1:9040
+            DNSPort 192.168.42.1:53
+        backup: yes
     notify: restart tor
 
   - name: install ipv4 firewall rules
@@ -216,8 +282,10 @@
         state: started
         enabled: true
 
-  - name: activate service isc-dhcpd-server
+  - name: activate service isc-dhcp-server
     become: true
+    tags:
+      - activate
     systemd:
         name: isc-dhcp-server
         state: started

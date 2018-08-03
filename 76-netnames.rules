@@ -1,0 +1,32 @@
+# This file lives at /etc/udev/rules.d/76-netnames.rules
+#
+# To learn more about how it works see:
+# zcat /usr/share/doc/udev/README.Debian.gz | less
+# See man udev(7) for documentation how to write udev rules.
+#
+# identify device by MAC address
+#SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="11:22:aa:bb:cc:33", NAME="eth-dmz"
+#
+# identify by vendor/model ID
+#SUBSYSTEM=="net", ACTION=="add", ENV{ID_VENDOR_ID}=="0x8086", ENV{ID_MODEL_ID}=="0x1502", NAME="eth-intel-gb"
+#
+# USB device by path
+# get ID_PATH if not present yet
+#ENV{ID_PATH}=="", IMPORT{builtin}="path_id"
+#SUBSYSTEM=="net", ACTION=="add", ENV{ID_PATH}=="*-usb-0:3:1*", NAME="eth-blue-hub"
+#
+#
+# See https://www.raspberrypi.org/forums/viewtopic.php?f=36&t=198946
+# +---------------+
+# | wlan1 | wlan2 |
+# +-------+-------+
+# | wlan3 | wlan4 |
+# +---------------+ (RPI USB ports with position dependent device names for up to 4 optional wifi dongles)
+# 
+# | wlan0 | (onboard wifi)
+#
+ACTION=="add", SUBSYSTEM=="net", SUBSYSTEMS=="sdio", KERNELS=="mmc1:0001:1", NAME="wlan0"
+ACTION=="add", SUBSYSTEM=="net", SUBSYSTEMS=="usb",  KERNELS=="1-1.2",       NAME="wlan1"
+ACTION=="add", SUBSYSTEM=="net", SUBSYSTEMS=="usb",  KERNELS=="1-1.4",       NAME="wlan2"
+ACTION=="add", SUBSYSTEM=="net", SUBSYSTEMS=="usb",  KERNELS=="1-1.3",       NAME="wlan3"
+ACTION=="add", SUBSYSTEM=="net", SUBSYSTEMS=="usb",  KERNELS=="1-1.5",       NAME="wlan4"
