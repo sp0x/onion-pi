@@ -200,6 +200,9 @@ In the end the following command should succeed without any error message:
 and output lots of infos gathered about the raspi (please mind the trailing
 comma behind the IP).
 
+Optional: on the pi, install support to run checkmode
+
+    (raspi) $ sudo apt-get install python-apt
 
 ## Run `ansible` turn ordinary raspi into a `gogoonion`
 
