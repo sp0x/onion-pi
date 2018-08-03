@@ -1,0 +1,86 @@
+# This ansible playbook performs setup of a RaspberryPi providing a basic config I like.
+#
+# Call from remote:
+#
+# $ ansible-playbook -i 192.168.1.131, \
+#   --become \
+#   --ask-pass \
+#   --ask-become-pass \
+#   --user pi \
+#   setup_basic.yml \
+#   --extra-vars "username=jason password=SECRET hostname=onionpi timezone=America/Los_Angeles country=US"
+#
+- hosts: all
+  become: false
+  become_user: root
+  vars:
+      - hostname: "{{ hostname }}"
+      - username: "{{ username }}"
+      - password: "{{ password }}"
+      - timezone: "{{ timezone }}"
+      - country: "{{ country }}"
+
+  tasks:
+  - name: Update system
+    become: true
+    apt: upgrade=safe update_cache=yes cache_valid_time=36000
+
+  - name: Install additionally needed packages
+    become: true
+    package:
+        name: "{{ item }}"
+        state: present
+    with_items:
+        - "git"
+
+  - name: set timezone and localtime
+    become: true
+    shell: |
+      echo {{ timezone }} > /etc/timezone
+      cp /usr/share/zoneinfo/`cat /etc/timezone` /etc/localtime
+
+  - name: set hostname and hosts
+    become: true
+    shell: |
+      echo {{ hostname }} > /etc/hostname
+      echo 127.0.1.1 {{ hostname }} >> /etc/hosts
+
+  - name: set wifi country to {{ country }}
+    become: true
+    shell: |
+      echo {{ country }}=US >> /etc/wpa_supplicant/wpa_supplicant.conf
+
+  - name: set charset to en_US.UTF-8 UTF-8 (unset en.GB)
+    become: true
+    shell: |
+      cp /etc/locale.gen /etc/locale.gen.bak
+      echo en_US.UTF-8 UTF-8 > /etc/locale.gen
+      locale-gen
+      export LANG=en_US.UTF-8 && echo LANG=en_US.UTF-8 > /etc/default/locale && update-locale en_US.UTF-8
+
+  - name: create a new user {{ username }}
+    become: true
+    shell: |
+      useradd -m {{ username }} -G sudo --shell /bin/bash
+      usermod --password $(echo {{ password }} | openssl passwd -1 -stdin) {{ username }}
+      cp /home/pi/.bash_logout /home/{{ username }}/.
+      cp /home/pi/.bashrc /home/{{ username }}/.
+      cp /home/pi/.profile /home/{{ username }}/.
+
+  - name: configure ssh to only let {{ username }} login (deny pi user from ssh)
+    become: true
+    shell: |
+      echo AllowUsers {{ username }} >> /etc/ssh/sshd_config
+
+  - name: setup basic git config
+    become: true
+    shell: |
+      git config --global --unset commit.gpgsign
+      git config --global alias.st status
+      git config --global alias.br branch
+      git config --global alias.co checkout
+      git config --global alias.unstage 'reset HEAD'
+      git config --global alias.last 'log -1 HEAD'
+      git config --global color.diff auto
+      git config --global color.ui true
+
