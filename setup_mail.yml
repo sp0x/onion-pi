@@ -2,7 +2,12 @@
 #
 # Call from remote:
 #
-#   $ ansible-playbook -i 192.168.1.131, --become --ask-pass --ask-become-pass --user jason setup_mail.yml --extra-vars "gmail_username=me gmail_password=secret"
+#   $ ansible-playbook -i 192.168.1.131, \
+#       --become \
+#       --ask-pass \
+#       --ask-become-pass \
+#       --user jason setup_mail.yml \
+#       --extra-vars "hostname=onionpi username=jason gmail_username=jasonthrasher gmail_password=SECRET"
 #
 # with the real IP used instead.
 #
@@ -12,10 +17,10 @@
   become: false
   become_user: root
   vars:
-      - hostname: "onionpi"
-      - pi_username: jason
-      - gmail_app_username: "{{ gmail_username }}"
-      - gmail_app_password: "{{ gmail_password }}"
+      - hostname: "{{ hostname }}"
+      - username: "{{ username }}"
+      - gmail_username: "{{ gmail_username }}"
+      - gmail_password: "{{ gmail_password }}"
 
   tasks:
   - name: Update system
@@ -45,9 +50,9 @@
     blockinfile:
         dest: "/etc/exim4/passwd.client"
         block: |
-            gmail-smtp.l.google.com:{{ gmail_app_username }}@gmail.com:{{ gmail_app_password }}
-            *.google.com:{{ gmail_app_username }}@gmail.com:{{ gmail_app_password }}
-            smtp.gmail.com:{{ gmail_app_username }}@gmail.com:{{ gmail_app_password }}
+            gmail-smtp.l.google.com:{{ gmail_username }}@gmail.com:{{ gmail_password }}
+            *.google.com:{{ gmail_username }}@gmail.com:{{ gmail_password }}
+            smtp.gmail.com:{{ gmail_username }}@gmail.com:{{ gmail_password }}
 
   - name: setup mail /etc/aliases
     become: true
@@ -65,7 +70,7 @@
 
   - name: change full name of email sender
     become: true
-    command: chfn --full-name "{{ pi_username }} @ {{ hostname }}" {{ pi_username }}
+    command: chfn --full-name "{{ username }} @ {{ hostname }}" {{ username }}
 
   - name: Sending an e-mail using the remote machine, not the Ansible controller node
     mail:
@@ -75,3 +80,6 @@
       to: jason@localhost
       subject: Ansible-report
       body: System {{ ansible_hostname }} has been successfully provisioned.
+
+  - name: send email via shell
+    shell: echo "This message was sent from the ansible config via a shell command" | mail -s "This is the subject line `date`" root@localhost
