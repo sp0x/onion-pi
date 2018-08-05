@@ -32,6 +32,8 @@
         state: present
     with_items:
         - "git"
+        - "unattended-upgrades"
+        - "apt-listchanges"
 
   - name: set timezone and localtime
     become: true
@@ -85,3 +87,9 @@
       git config --global color.diff auto
       git config --global color.ui true
 
+  - name: configure unattended-upgrades
+    become: true
+    shell: |
+      sed -i "s/\/\/Unattended-Upgrade::Mail \"root\";/Unattended-Upgrade::Mail \"root\";/g" /etc/apt/apt.conf.d/50unattended-upgrades
+
+      
