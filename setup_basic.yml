@@ -44,6 +44,7 @@
     shell: |
       echo {{ hostname }} > /etc/hostname
       echo 127.0.1.1 {{ hostname }} >> /etc/hosts
+      sed -i s/^hostname/{{ hostname }}/g /etc/dhcpcd.conf
 
   - name: set wifi country to {{ country }}
     become: true
