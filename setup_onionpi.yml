@@ -3,38 +3,47 @@
 #
 # Call from remote:
 #
-#   $ ansible-playbook -i 192.168.178.13, -u pi -k setup_onionpi.yml
+# ansible-playbook -i 192.168.1.131, \
+#  --become \
+#  --ask-pass \
+#  --ask-become-pass \
+#  --user jason setup_onionpi.yml \
+#  --extra-vars "hostname=onionpi dns_servers=8.8.8.8,8.8.4.4"
 #
-# with the real IP used instead.
-#
-# You may want to fiddle with the settings in `vars`. The DNS servers used are
-# from CCC Berlin and from Digitalcourage/FoebuD
+# more here: https://learn.adafruit.com/onion-pi?view=all
 #
 - hosts: all
   become: false
   become_user: root
   vars:
-      - hostname: "onionpi"
-      - dns_servers: "8.8.8.8, 8.8.4.4"
+      - hostname: "{{ hostname }}"
+      - dns_servers: "{{ dns_servers }}"
 
   handlers:
-  - name: restart dhcpd
-    become: true
-    service:
-        name: "isc-dhcp-server"
-        state: restarted
   - name: restart hostapd
     become: true
     service:
         name: "hostapd"
         state: restarted
-  - name: disable ipv4 forwarding immediately
+  - name: restart dhcpcd
     become: true
-    shell: echo 0 > /proc/sys/net/ipv4/ip_forward
+    service:
+        name: "dhcpcd"
+        state: restarted
   - name: restart tor
     become: true
     service:
         name: "tor"
+        state: restarted
+  - name: restart dnsmasq
+    become: true
+    service:
+        name: "dnsmasq"
+        state: restarted
+  - name: restart netfilter-persistent
+    become: true
+    service:
+        name: "netfilter-persistent"
         state: restarted
 
   tasks:
@@ -52,43 +61,12 @@
         name: "{{ item }}"
         state: present
     with_items:
-        - "unattended-upgrades"
         - "rng-tools"
-        - "hostapd"
-        - "isc-dhcp-server"
+        - "dnsmasq"
         - "iptables-persistent"
+        - "bridge-utils"
+        - "hostapd"
         - "tor"
-
-  #
-  # Enable unattended upgrades
-  #
-  - name: enable unattended Raspbian upgrades setting an origin-pattern
-    become: true
-    tags:
-      - unattended
-    replace:
-        dest: "/etc/apt/apt.conf.d/50unattended-upgrades"
-        regexp: '^//      "o=Debian,n=jessie";'
-        replace: '        "o=Debian,n=jessie";'
-
-  - name: enable unattended Raspbian-Security upgrades setting an origin-pattern
-    become: true
-    tags:
-      - unattended-security
-    replace:
-        dest: "/etc/apt/apt.conf.d/50unattended-upgrades"
-        regexp: '^//      "o=Debian,n=jessie,l=Debian-Security";'
-        replace: '        "o=Debian,n=jessie,l=Debian-Security";'
-
-  - name: start unattended-upgrades every other hour
-    become: true
-    tags:
-      - cron-updates
-    cron:
-        name: "system-update"
-        minute: '39'
-        hour: '*/2'
-        job: '/usr/bin/unattended-upgrade'
 
   #
   # Pin wlan device names
@@ -106,89 +84,31 @@
         mode: 0644
         backup: yes
 
-  #
-  # configure dhcpd
-  #
-  - name: tweak dhcpd.conf - unset preset domain-name
+  - name: configure static IP for wlan0
     become: true
     tags:
-      - dhcpd-name
-    replace:
-        dest: "/etc/dhcp/dhcpd.conf"
-        regexp: '^option domain-name "example\.org";'
-        replace: '#option domain-name "example.org";'
-        backup: yes
-    notify: restart dhcpd
-
-  - name: tweak dhcpd.conf - unset preset domain-name-servers
-    become: true
-    tags:
-      - dhcpd-servers
-    replace:
-        dest: "/etc/dhcp/dhcpd.conf"
-        regexp: '^option domain-name-servers (.*);$'
-        replace: '#option domain-name-servers \1'
-    notify: restart dhcpd
-
-  - name: tweak dhcpd.conf - set authoritative flag
-    become: true
-    tags:
-      - dhcpd-authoritative
-    replace:
-        dest: "/etc/dhcp/dhcpd.conf"
-        regexp: '^#authoritative;$'
-        replace: 'authoritative;'
-    notify: restart dhcpd
-
-  - name: tweak dhcpd.conf - add new subnet
-    become: true
-    tags:
-      - dhcpd-subnet
+      - dhcpcd
     blockinfile:
-        dest: "/etc/dhcp/dhcpd.conf"
+        dest: "/etc/dhcpcd.conf"
         block: |
-            subnet 192.168.42.0 netmask 255.255.255.0 {
-                   range 192.168.42.10 192.168.42.50;
-                   option broadcast-address 192.168.42.255;
-                   option routers 192.168.42.1;
-                   default-lease-time 600;
-                   max-lease-time 7200;
-                   option domain-name "local";
-                   option domain-name-servers {{ dns_servers }};
-            }
-    notify: restart dhcpd
+            denyinterfaces wlan0
+            denyinterfaces eth0
 
-  - name: set wlan1 as dhcp-serviced device for IPV4
+            interface wlan0
+                static ip_address=192.168.4.1/24
+                nohook wpa_supplicant
+#    notify: restart dhcpd
+
+  - name: configure dnsmasq
     become: true
     tags:
-      - wlan1v4
-    replace:
-        dest: "/etc/default/isc-dhcp-server"
-        regexp: '^INTERFACESv4=""'
-        replace: 'INTERFACESv4="wlan1"'
-    notify: restart dhcpd
-
-  - name: set wlan1 as dhcp-serviced device for IPV6
-    become: true
-    tags:
-      - wlan1v6
-    replace:
-        dest: "/etc/default/isc-dhcp-server"
-        regexp: '^INTERFACESv6=""'
-        replace: 'INTERFACESv6="wlan1"'
-    notify: restart dhcpd
-
-  - name: setup static ip config for wlan1
-    become: true
-    tags:
-      - static-wlan1
-    copy:
-        src: "interfaces.tmpl"
-        dest: "/etc/network/interfaces"
-        owner: root
-        group: root
-        mode: 0644
-        backup: yes
+      - dnsmasq
+    blockinfile:
+        dest: "/etc/dnsmasq.conf"
+        block: |
+            interface=wlan0      # Use the require wireless interface - usually wlan0
+              dhcp-range=192.168.4.2,192.168.4.20,255.255.255.0,24h
+#    notify: restart dnsmasq
 
   #
   # configure hostapd
@@ -204,7 +124,7 @@
         group: root
         mode: 0600
         backup: yes
-    notify: restart hostapd
+#    notify: restart hostapd
 
   - name: tell hostapd.conf location
     become: true
@@ -214,34 +134,61 @@
         dest: "/etc/default/hostapd"
         regexp: '^#DAEMON_CONF=""'
         replace: 'DAEMON_CONF="/etc/hostapd/hostapd.conf"'
-    notify: restart hostapd
+#    notify: restart hostapd
 
-  - name: configure /etc/init.d/hostapd
+  #
+  # the original config disabled ipv4, so not sure why enabling here
+  #
+  - name: configure ipv4 forwarding at boot time
     become: true
     tags:
-      - hostapd-init.d
-    replace:
-        dest: "/etc/init.d/hostapd"
-        regexp: '^DAEMON_CONF='
-        replace: 'DAEMON_CONF=/etc/hostapd/hostapd.conf'
-    notify: restart hostapd
-
-
-
-
-
-
-
-
-  - name: deactivate ipv4 forwarding at boot time
-    become: true
-    tags:
-      - deactivate-ipv4
+      - configure-ipv4
     replace:
         dest: "/etc/sysctl.conf"
-        regexp: "^net.ipv4.ip_forward=1"
-        replace: "#net.ipv4.ip_forward=1"
-    notify: disable ipv4 forwarding immediately
+        regexp: "^#net.ipv4.ip_forward=1"
+        replace: "net.ipv4.ip_forward=1"
+#    notify: enable ipv4 forwarding immediately
+
+  #
+  # iptables-persistent should install the service netfilter-persistent, which reads the rules on boot
+  #
+  - name: install ipv4 firewall rules
+    become: true
+    tags:
+      - firewall-rules
+    copy:
+        src: "rules.v4"
+        dest: "/etc/iptables/rules.v4"
+        owner: root
+        group: root
+        mode: 0644
+        backup: yes
+#    notify: restart netfilter-persistent
+
+  # if needed, remove the bridge with
+  # ifconfig br0 down && brctl delbr br0 && rm /tmp/br0_exists
+  - name: add a new bridge
+    become: true
+    tags:
+      - add-bridge
+    shell: |
+      brctl addbr br0
+      brctl addif br0 eth0
+      touch /tmp/br0_exists
+    args:
+      creates: /tmp/br0_exists
+
+  - name: setup interfaces
+    become: true
+    tags:
+      - interfaces
+    copy:
+        src: "interfaces.tmpl"
+        dest: "/etc/network/interfaces"
+        owner: root
+        group: root
+        mode: 0644
+        backup: yes
 
   #
   # install tor and related fw rules
@@ -252,7 +199,7 @@
       - torrc
     blockinfile:
         dest: "/etc/tor/torrc"
-        insertafter: "^## https://www.torproject.org/docs/faq#torrc"
+        #insertafter: "^## https://www.torproject.org/docs/faq#torrc"
         block: |
             Log notice file /var/log/tor/notices.log
             VirtualAddrNetwork 10.192.0.0/10
@@ -261,40 +208,21 @@
             TransPort 192.168.42.1:9040
             DNSPort 192.168.42.1:53
         backup: yes
-    notify: restart tor
-
-  - name: install ipv4 firewall rules
-    become: true
-    copy:
-        src: "rules.v4"
-        dest: "/etc/iptables/rules.v4"
-        owner: root
-        group: root
-        mode: 0644
-        backup: yes
+#    notify: restart tor
 
   #
   # activate new services
   #
-  - name: activate service hostapd
-    become: true
-    systemd:
-        name: hostapd
-        state: started
-        enabled: true
-
-  - name: activate service isc-dhcp-server
-    become: true
-    tags:
-      - activate
-    systemd:
-        name: isc-dhcp-server
-        state: started
-        enabled: true
-
-  - name: enable service tor
-    become: true
-    systemd:
-        name: tor
-        state: started
-        enabled: true
+#  - name: enable service hostapd
+#    become: true
+#    systemd:
+#        name: hostapd
+#        state: started
+#        enabled: true
+#
+#  - name: enable service tor
+#    become: true
+#    systemd:
+#        name: tor
+#        state: started
+#        enabled: true

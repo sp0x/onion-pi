@@ -1,22 +1,29 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
 # interfaces(5) file used by ifup(8) and ifdown(8)
-
+#
 # Please note that this file is written to be used with dhcpcd
 # For static IP, consult /etc/dhcpcd.conf and 'man dhcpcd.conf'
 
 # Include files from /etc/network/interfaces.d:
 source-directory /etc/network/interfaces.d
 
+# The loopback network interface
 auto lo
 iface lo inet loopback
 
-auto eth0
-iface eth0 inet dhcp
+# Set up interfaces manually, avoiding conflicts with, e.g., network manager
+#iface eth0 inet manual
 
-allow-hotplug wlan0
-iface wlan0 inet manual
-    wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+# bridge setup
+auto br0
+iface br0 inet manual
+bridge_ports eth0 wlan0
 
-allow-hotplug wlan1
-iface wlan1 inet static
-    address 192.168.42.1
-    netmask 255.255.255.0
+# static bridge setup
+#  iface br0 inet static
+#    bridge_ports eth0 eth1
+#        address 192.168.1.2
+#        broadcast 192.168.1.255
+#        netmask 255.255.255.0
+#        gateway 192.168.1.1
