@@ -146,7 +146,10 @@ This last step is a placeholder for actually getting the OnionPi working, but do
       setup_onionpi.yml \
       --extra-vars "hostname=onionpi dns_servers=8.8.8.8,8.8.4.4"
 
-Reboot the pi, and attempt to connect to it.
+Reboot the pi, and attempt to connect to it from another computer via WiFi, to verify that it's acting as an access point.
+
+
+
 
 ### 3) Setup first Wifi
 
@@ -199,54 +202,6 @@ Now try to connect to your gogoonion via SSH:
 
     $ ssh pi@<IP-OF-YOUR-RASPBERRY-PI>
 
-You must complete this step at least once to enable flawless `ansible` runs
-later on.
-
-
-## Prepare `ansible`
-
-
-We will use `ansible` to provision `gogoonion` with all software/settings
-needed. Make sure you have version 2.x installed on the host where you also
-have SSH access to the `gogoonion`.
-
-In the end the following command should succeed without any error message:
-
-    (laptop) $ ansible -i <RASPI-IP>, all --become --ask-pass --ask-become-pass --user pi --module-name setup
-
-and output lots of infos gathered about the raspi (please mind the trailing
-comma behind the IP).
-
-Optional: on the pi, install support to run checkmode
-
-    (raspi) $ sudo apt-get install python-apt
-
-## Run `ansible` turn ordinary raspi into a `gogoonion`
-
-Before we proceed, we need internet access from the `gogoonion`.
-
-Log into your `raspi` and update the system:
-
-    (raspi) $ sudo apt-get update
-    (raspi) $ sudo apt-get upgrade
-
-If packages have been upgraded during this step (consult the display output), a
-system restart is recommended or even required before you proceed.
-
-    (raspi) $ sudo reboot
-
-After reboot, run the ansible playbook `setup_onionpi.yml` from the computer
-which has SSH access to your `gogoonion`:
-
-    $ ansible-playbook -i <RASPI-IP>, --become --ask-pass --ask-become-pass --user pi setup_onionpi.yml
-
-This step will normally take some time. Afterwards restart the raspi
-
-    (raspi) $ sudo reboot
-
-and enjoy.
-
-
 ## Access your `gogoonion`
 
 Did it work? You can try with your laptop.
@@ -268,7 +223,6 @@ work, you can for instance browse
 to check under which IP you are seen in the internet. This page can tell
 whether you look like using `tor` or not. It might also complain that you do
 not use the `torbrowser`.
-
 
 # Differences to Regular Adafruit Onion-pi Setup
 
