@@ -135,7 +135,7 @@ If you don't have a gmail account, you'll need to edit the yml script to change 
 
 ### 5) Setup WiFi Hotspot
 
-This last step is a placeholder for actually getting the OnionPi working, but does demonstrate that the wifi access point feature is functional.
+This last step is a placeholder for actually getting the OnionPi working, but does demonstrate that the wifi access point feature is functional.  This sets up the pi as an access point in standalone network (NAT) mode as documented [here](https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md).
 
     ansible-playbook -i 192.168.1.131, \
       --become \
@@ -145,7 +145,7 @@ This last step is a placeholder for actually getting the OnionPi working, but do
       setup_onionpi.yml \
       --extra-vars "hostname=onionpi dns_servers=8.8.8.8,8.8.4.4"
 
-
+Reboot the pi, and attempt to connect to it.
 
 ### 3) Setup first Wifi
 
