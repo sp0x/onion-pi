@@ -92,4 +92,14 @@
     shell: |
       sed -i "s/\/\/Unattended-Upgrade::Mail \"root\";/Unattended-Upgrade::Mail \"root\";/g" /etc/apt/apt.conf.d/50unattended-upgrades
 
+  - name: start unattended-upgrades every other hour
+    become: true
+    tags:
+      - cron-updates
+    cron:
+        name: "system-update"
+        minute: '39'
+        hour: '*/2'
+        job: '/usr/bin/unattended-upgrade'
+
       
