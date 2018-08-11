@@ -23,7 +23,7 @@
   tasks:
   - name: Update system
     become: true
-    apt: upgrade=safe update_cache=yes cache_valid_time=36000
+    apt: upgrade=full update_cache=yes cache_valid_time=36000
 
   - name: Install additionally needed packages
     become: true
