@@ -2,7 +2,7 @@
 Turn a standard Raspbian install into a [tor](https://torproject.org)-ified
 wifi access point with [ansible](https://www.ansible.com/).
 
-This is the [Raspbian Stretch](https://www.raspberrypi.org/downloads/raspbian/) edition of stock adafruit [onion-pi](https://learn.adafruit.com/onion-pi?view=all).
+This is the [Raspbian Stretch](https://www.raspberrypi.org/downloads/raspbian/) edition of stock adafruit [onion-pi](https://learn.adafruit.com/onion-pi?view=all).  You may want to read up on [what's new in Stretch](https://wiki.debian.org/NewInStretch).
 
 This build is different from the original in some minor details. See the list
 at end of this document for details.
@@ -25,14 +25,13 @@ cheap USB-pluggable SD-card reader available at paper stores and similar.
 
 ## Preparation
 
-### 1) Download and install Raspbian Stretch Lite on an SD card
+### 1) Download and verify the OS image
 
-We will use the lite image of Raspbian Stretch as provided at
+Download the lite image of Raspbian Stretch provided from:
 
   https://www.raspberrypi.org/downloads/raspbian/
 
-Afterwards you should have a file named ``2018-06-27-raspbian-stretch-lite.zip``
-or similar (depending on the current date). This ZIP archive should contain one
+Afterwards you should have a file named ``2018-06-27-raspbian-stretch-lite.zip``. This ZIP archive should contain one
 big image file.
 
 Check the sha1 sum of the file:
@@ -45,7 +44,7 @@ If so, you can unzip the file with
 
     unzip 2018-06-27-raspbian-stretch-lite.zip
 
-#### Writing the image on OSX
+### 2) Write the image on OSX
 
 For SD cards larger than 64GB, be sure to start by [formatting them as FAT32](https://www.raspberrypi.org/documentation/installation/sdxc_formatting.md) (not exFAT), as you may have trouble with ``dd`` otherwise.
 
@@ -67,7 +66,7 @@ Then eject the disk:
 
     sudo diskutil eject /dev/rdisk4
 
-#### Install Ansible from Homebrew
+### 3) Install Ansible from Homebrew
 
 Ansible basically allows us to run idempotent configuration changes, and is required for this tutorial.  Everything could be done with straight shell/bash/etc, but the goal here is to go fast with few errors, not to document what's changing.  You can always view the ansible yaml files to see what's happening.
 
@@ -109,7 +108,9 @@ Take note of the IP address of the eth0 connection on the pi:
 
 All of the localization, charset, hostname, etc options that are normally run via ``sudo raspi-config`` are taken care of in the ansible scripts, with parameters passed on the CLI.  That way, there are fewer manual things to do.
 
-Setup the normal things done through ``raspi-config``, change the ``--extra-vars`` as appropriate.
+Part of good security practices nessecitates creating a new user, other than the default ``pi`` user, and then disabling the default ``pi`` user from logging in via SSH.  In this example, a new user named ``jason`` is created, which will be used for future logins via SSH.
+
+You should change the ``--extra-vars`` as appropriate.
 
     ansible-playbook -i 192.168.1.131, \
        --become \
