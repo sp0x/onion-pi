@@ -2,8 +2,7 @@
 Turn a standard Raspbian install into a [tor](https://torproject.org)-ified
 wifi access point with [ansible](https://www.ansible.com/).
 
-This is the ``gogoonion`` edition of stock adafruit
-onion-pi.
+This is the [Raspbian Stretch](https://www.raspberrypi.org/downloads/raspbian/) edition of stock adafruit [onion-pi](https://learn.adafruit.com/onion-pi?view=all).
 
 This build is different from the original in some minor details. See the list
 at end of this document for details.
@@ -13,14 +12,10 @@ at end of this document for details.
 We will make use of
 
 * 1 RaspberryPi 3
-* 1 micro SD card (min. 4 GB, SDHC, class 10, UHS-I)
+* 1 micro SD card (min. 4 GB)
 * 1 USB wifi adapter
-* 1 USB TTL connection cable (see below)
-
-If no such connection cable is at hand, we need additionally:
-
 * 1 power adapter
-* 1 keyboard (bluetooth or USB)
+* 1 keyboard (USB preferred)
 * 1 TV or other device able to display HDMI signals from your RaspberryPi
 
 To setup everything, we additionally need a computer with USB and an SD-card
@@ -30,56 +25,57 @@ cheap USB-pluggable SD-card reader available at paper stores and similar.
 
 ## Preparation
 
-### 1) Download and install Raspbian Jessie Lite on an SD card
+### 1) Download and install Raspbian Stretch Lite on an SD card
 
-We will use the lite image of Raspbian Jessie as provided at
+We will use the lite image of Raspbian Stretch as provided at
 
   https://www.raspberrypi.org/downloads/raspbian/
 
-Afterwards you should have a file named ``2017-04-10-raspbian-jessie-lite.zip``
+Afterwards you should have a file named ``2018-06-27-raspbian-stretch-lite.zip``
 or similar (depending on the current date). This ZIP archive should contain one
 big image file.
 
 Check the sha1 sum of the file:
 
-    $ sha1sum 2017-04-10-raspbian-jessie-lite.zip
-    c24a4c7dd1a5957f303193fee712d0d2c0c6372d 2017-04-10-raspbian-jessie-lite.zip
+    openssl sha -sha256 2018-06-27-raspbian-stretch-lite.zip | grep 3271b244734286d99aeba8fa043b6634cad488d211583814a2018fc14fdca313
 
-and make sure it equals the number given on the website.
+and make sure it equals the number given on the website (grep prints that hash).
 
 If so, you can unzip the file with
 
-    $ unzip 2017-04-10-raspbian-jessie-lite.zip
+    unzip 2018-06-27-raspbian-stretch-lite.zip
 
-but it is not neccessary for our purposes. We will unzip the file on-the-fly
-and write the contents to a locally attached SD card:
+#### Writing the image on OSX
 
-    $ zcat 2017-04-10-raspbian-jessie-lite.zip | dd of=/dev/sdX bs=4M
+For SD cards larger than 64GB, be sure to start by [formatting them as FAT32](https://www.raspberrypi.org/documentation/installation/sdxc_formatting.md) (not exFAT), as you may have trouble with ``dd`` otherwise.
 
-where ``/dev/sdX`` refers to your SD-card.
+Insert the SD card, and figure out which number the disk is:
 
+    diskutil list
 
-### 2) Enable UART Access
+Assuming it's /dev/disk4, unmount the disk (or change the reference to ``4`` for your specific disk number below):
 
-You can skip this step, if you use external keyboard/screen for initial setup.
-But if you use a TTL connection cable for it, you have to enable "serial"
-access first.
+    diskutil unmountDisk /dev/disk4
 
-Your freshly created SD-card should now contain two partitions: one for boot
-files and one with the root filesystem. The boot filesystem should come first.
-If you cannot see these partitions, eject your SD-card and reinsert it in your
-computer.
+Unzip the file on-the-fly and write the contents to a locally attached SD card:
 
-Then, mount the boot partition (should be done automatically when the SD-card
-is inserted in a running Ubuntu) and find a file named 'config.txt'. Edit this
-file and add a line at end reading:
+    sudo bash -c 'zcat 2018-06-27-raspbian-stretch-lite.zip | dd bs=1m of=/dev/rdisk4 conv=sync'
 
-    enable_uart=1
+Note that the /dev/rdisk4 is different from /dev/disk4 in that rdisk doesn't buffer the writing, and so the data is flushed for each chunk written which should be faster.
 
-There should be no spaces in this stanza.
+Then eject the disk:
 
-When done, save the file and eject the SD-card properly.
+    sudo diskutil eject /dev/rdisk4
 
+#### Install Ansible from Homebrew
+
+Ansible basically allows us to run idempotent configuration changes, and is required for this tutorial.  Everything could be done with straight shell/bash/etc, but the goal here is to go fast with few errors, not to document what's changing.  You can always view the ansible yaml files to see what's happening.
+
+    brew install ansible
+
+Make sure you have version 2.4 or higher installed on the host where you also have SSH access to the pi.
+
+    ansible --version
 
 ## Basic Setup
 
@@ -87,48 +83,68 @@ When done, save the file and eject the SD-card properly.
 
 Stick the prepared SD card into your RaspberryPi.
 
-If you want to use a TTL cable, connect it now with your Raspi and then plug it
-into a USB port at your computer. This will power up the RaspberryPi.
-
-Otherwise plug in your keyboard and connect the HDMI port with an appropriate
+Plug in your keyboard and connect the HDMI port with an appropriate
 device. Also plug in the power adapter, which will power up the RaspberryPi.
 
 
 ### 2) Setup basic settings
 
-If you use a TTL connection cable, you can connect to your RaspberryPi doing
+Login into your new system using the keyboard and monitor attached to the pi with credentials "pi" / "raspberry".
 
-    $ sudo screen /dev/ttyUSB0 115200
+Immediately, change the default password.
 
-where "/dev/ttyUSB0" should be the RaspberryPi as it appears to your system
-when connected via USB.
+    passwd
 
-If you use an external keyboard/screen, then you should see the startup
-messages already.
+Configure and start SSH, so further commands can be run via the ansible scripts.
 
-Now you should be able to login into your new system (credentials
-"pi"/"raspberry"),
+    sudo systemctl enable ssh
+    sudo service ssh status
+    sudo service ssh restart
 
-Setup basic settings using
+Take note of the IP address of the eth0 connection on the pi:
 
-    (raspi) $ sudo raspi-config
+    ifconfig -a
 
-In the appearing menu do at least the following:
+### 3) Setup Basic Config
 
-- Under 'Change User Password'`, well, change your user password
-- Under 'Localisation Options' set the timezone
-- Under 'Localisation Options' set the wi-fi country
-- Under 'Interfacing Options' enable SSH server
-- Under 'Advanced Options' expand the filesystem to use all of the SD card
+All of the localization, charset, hostname, etc options that are normally run via ``sudo raspi-config`` are taken care of in the ansible scripts, with parameters passed on the CLI.  That way, there are fewer manual things to do.
 
-Optionally you may:
+Setup the normal things done through ``raspi-config``, change the ``--extra-vars`` as appropriate.
 
-- Under 'Hostname' set a new hostname.
-- Under 'Boot Options' pick console login without autologin
-- Under 'Localisation Options' pick a special keyboard layout
-- Under 'Localisation Options' pick a special locale
+    ansible-playbook -i 192.168.1.131, \
+       --become \
+       --ask-pass \
+       --ask-become-pass \
+       --user pi \
+       setup_basic.yml \
+       --extra-vars "username=jason password=YOUR_SECRET hostname=onionpi timezone=America/Los_Angeles country=US"
 
-When done, choose "Finish" and reboot.
+### 4) Setup Mail Config
+
+Having the pi email you when normal system maintenance jobs run is very helpful for debugging and monitoring, and is highly recommended.
+
+    ansible-playbook -i 192.168.1.131, \
+      --become \
+      --ask-pass \
+      --ask-become-pass \
+      --user jason \
+      setup_mail.yml \
+      --extra-vars "hostname=onionpi username=jason gmail_username=jasonthrasher gmail_password=GOOGLE_APP_SPECIFIC_PASSWORD"
+
+If you don't have a gmail account, you'll need to edit the yml script to change the ``@gmail.com`` domain appropriately.
+
+### 5) Setup WiFi Hotspot
+
+This last step is a placeholder for actually getting the OnionPi working, but does demonstrate that the wifi access point feature is functional.
+
+    ansible-playbook -i 192.168.1.131, \
+      --become \
+      --ask-pass \
+      --ask-become-pass \
+      --user jason \
+      setup_onionpi.yml \
+      --extra-vars "hostname=onionpi dns_servers=8.8.8.8,8.8.4.4"
+
 
 
 ### 3) Setup first Wifi
