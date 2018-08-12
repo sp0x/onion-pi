@@ -39,10 +39,7 @@ Check the sha1 sum of the file:
     openssl sha -sha256 2018-06-27-raspbian-stretch-lite.zip | grep 3271b244734286d99aeba8fa043b6634cad488d211583814a2018fc14fdca313
 
 and make sure it equals the number given on the website (grep prints that hash).
-
-If so, you can unzip the file with
-
-    unzip 2018-06-27-raspbian-stretch-lite.zip
+    
 
 ### 2) Write the image on OSX
 
@@ -56,9 +53,10 @@ Assuming it's /dev/disk4, unmount the disk (or change the reference to ``4`` for
 
     diskutil unmountDisk /dev/disk4
 
-Unzip the file on-the-fly and write the contents to a locally attached SD card:
+Unzip the file and write the contents to a locally attached SD card:
 
-    sudo bash -c 'unzip -p 2018-06-27-raspbian-stretch-lite.zip | dd bs=1m of=/dev/rdisk4 conv=sync'
+     unzip 2018-06-27-raspbian-stretch-lite.zip
+     sudo dd bs=1m if=2018-06-27-raspbian-stretch-lite.img of=/dev/rdisk4 conv=sync
 
 Note that the /dev/rdisk4 is different from /dev/disk4 in that rdisk doesn't buffer the writing, and so the data is flushed for each chunk written which should be faster.
 
