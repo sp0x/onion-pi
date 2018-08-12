@@ -10,7 +10,8 @@
 #  --user jason setup_onionpi.yml \
 #  --extra-vars "hostname=onionpi dns_servers=8.8.8.8,8.8.4.4"
 #
-# more here: https://learn.adafruit.com/onion-pi?view=all
+# based on:
+# https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md
 #
 - hosts: all
   become: false
