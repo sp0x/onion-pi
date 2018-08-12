@@ -37,46 +37,78 @@
 
   - name: set timezone and localtime
     become: true
+    tags:
+      - timezone
     shell: |
       echo {{ timezone }} > /etc/timezone
       cp /usr/share/zoneinfo/`cat /etc/timezone` /etc/localtime
+      touch /tmp/ansible_timezone
+    args:
+      creates: /tmp/ansible_timezone
 
   - name: set hostname and hosts
     become: true
+    tags:
+      - hostname
     shell: |
       echo {{ hostname }} > /etc/hostname
       echo 127.0.1.1 {{ hostname }} >> /etc/hosts
       sed -i s/^hostname/{{ hostname }}/g /etc/dhcpcd.conf
+      touch /tmp/ansible_hostname
+    args:
+      creates: /tmp/ansible_hostname
 
   - name: set wifi country to {{ country }}
     become: true
+    tags:
+      - wificountry
     shell: |
       echo {{ country }}=US >> /etc/wpa_supplicant/wpa_supplicant.conf
+      touch /tmp/ansible_wificountry
+    args:
+      creates: /tmp/ansible_wificountry
 
   - name: set charset to en_US.UTF-8 UTF-8 (unset en.GB)
     become: true
+    tags:
+      - charset
     shell: |
       cp /etc/locale.gen /etc/locale.gen.bak
       echo en_US.UTF-8 UTF-8 > /etc/locale.gen
       locale-gen
       export LANG=en_US.UTF-8 && echo LANG=en_US.UTF-8 > /etc/default/locale && update-locale en_US.UTF-8
+      touch /tmp/ansible_charset
+    args:
+      creates: /tmp/ansible_charset
 
   - name: create a new user {{ username }}
     become: true
+    tags:
+      - createuser
     shell: |
       useradd -m {{ username }} -G sudo --shell /bin/bash
       usermod --password $(echo {{ password }} | openssl passwd -1 -stdin) {{ username }}
       cp /home/pi/.bash_logout /home/{{ username }}/.
       cp /home/pi/.bashrc /home/{{ username }}/.
       cp /home/pi/.profile /home/{{ username }}/.
+      touch /tmp/ansible_createuser
+    args:
+      creates: /tmp/ansible_createuser
 
   - name: configure ssh to only let {{ username }} login (deny pi user from ssh)
     become: true
+    tags:
+      - allowuser
     shell: |
       echo AllowUsers {{ username }} >> /etc/ssh/sshd_config
+      touch /tmp/ansible_allowuser
+    args:
+      creates: /tmp/ansible_allowuser
 
   - name: setup basic git config
     become: true
+    tags:
+      - gitconfig
     shell: |
       git config --global --unset commit.gpgsign
       git config --global alias.st status
@@ -86,11 +118,19 @@
       git config --global alias.last 'log -1 HEAD'
       git config --global color.diff auto
       git config --global color.ui true
+      touch /tmp/ansible_gitconfig
+    args:
+      creates: /tmp/ansible_gitconfig
 
   - name: configure unattended-upgrades
     become: true
+    tags:
+      - unattended
     shell: |
       sed -i "s/\/\/Unattended-Upgrade::Mail \"root\";/Unattended-Upgrade::Mail \"root\";/g" /etc/apt/apt.conf.d/50unattended-upgrades
+      touch /tmp/ansible_unattended
+    args:
+      creates: /tmp/ansible_unattended
 
   - name: start unattended-upgrades every other hour
     become: true
@@ -101,5 +141,3 @@
         minute: '39'
         hour: '*/2'
         job: '/usr/bin/unattended-upgrade'
-
-      
