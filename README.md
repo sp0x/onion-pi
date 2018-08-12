@@ -58,7 +58,7 @@ Assuming it's /dev/disk4, unmount the disk (or change the reference to ``4`` for
 
 Unzip the file on-the-fly and write the contents to a locally attached SD card:
 
-    sudo bash -c 'zcat 2018-06-27-raspbian-stretch-lite.zip | dd bs=1m of=/dev/rdisk4 conv=sync'
+    sudo bash -c 'unzip -p 2018-06-27-raspbian-stretch-lite.zip | dd bs=1m of=/dev/rdisk4 conv=sync'
 
 Note that the /dev/rdisk4 is different from /dev/disk4 in that rdisk doesn't buffer the writing, and so the data is flushed for each chunk written which should be faster.
 
