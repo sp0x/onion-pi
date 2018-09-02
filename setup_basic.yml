@@ -53,7 +53,7 @@
     shell: |
       echo {{ hostname }} > /etc/hostname
       echo 127.0.1.1 {{ hostname }} >> /etc/hosts
-      sed -i s/^hostname/{{ hostname }}/g /etc/dhcpcd.conf
+      sed -i s/^hostname/hostname {{ hostname }}/g /etc/dhcpcd.conf
       touch /tmp/ansible_hostname
     args:
       creates: /tmp/ansible_hostname
