@@ -142,7 +142,7 @@ This last step is a placeholder for actually getting the OnionPi working, but do
       --ask-become-pass \
       --user jason \
       setup_onionpi.yml \
-      --extra-vars "hostname=onionpi dns_servers=8.8.8.8,8.8.4.4"
+      --extra-vars "dns_servers=8.8.8.8,8.8.4.4"
 
 Reboot the pi, and attempt to connect to it from another computer via WiFi, to verify that it's acting as an access point.
 

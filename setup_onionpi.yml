@@ -1,0 +1,236 @@
+# This ansible playbook performs setup of a
+# RaspberryPi providing a tor-proxied wifi accesspoint.
+#
+# Call from remote:
+#
+# ansible-playbook -i 192.168.1.131, \
+#  --become \
+#  --ask-pass \
+#  --ask-become-pass \
+#  --user jason setup_onionpi.yml
+#
+# more here: https://learn.adafruit.com/onion-pi?view=all
+#
+#
+- hosts: all
+  become: false
+  become_user: root
+  vars:
+      - dns_servers: "{{ dns_servers }}"
+
+  handlers:
+  - name: restart dhcpd
+    become: true
+    service:
+        name: "isc-dhcp-server"
+        state: restarted
+  - name: restart hostapd
+    become: true
+    service:
+        name: "hostapd"
+        state: restarted
+  - name: disable ipv4 forwarding immediately
+    become: true
+    shell: echo 0 > /proc/sys/net/ipv4/ip_forward
+  - name: restart tor
+    become: true
+    service:
+        name: "tor"
+        state: restarted
+
+  tasks:
+  - name: Update system
+    become: true
+    tags:
+      - update
+    apt: upgrade=safe update_cache=yes cache_valid_time=36000
+
+  - name: Install additionally needed packages
+    become: true
+    tags:
+      - install
+    package:
+        name: "{{ item }}"
+        state: present
+    with_items:
+        - "rng-tools"
+        - "iptables-persistent"
+        - "isc-dhcp-server"
+        - "hostapd"
+        - "tor"
+
+  #
+  # Pin wlan device names
+  # see: https://www.raspberrypi.org/forums/viewtopic.php?f=36&t=198946
+  #
+  - name: pin wlan0 to builtin wifi device
+    become: true
+    tags:
+      - pin-wifi
+    copy:
+        src: "76-netnames.rules"
+        dest: "/etc/udev/rules.d/76-netnames.rules"
+        owner: root
+        group: root
+        mode: 0644
+        backup: yes
+
+  # dhcpcd is a DHCP client, and dhcpd is a DHCP server, don't confuse them!
+  # see https://gist.github.com/Lewiscowles1986/390d4d423a08c4663c0ada0adfe04cdb
+  - name: fix broken stretch file to limit what interfaces dhcpcd runs on
+    become: true
+    tags: [ 'dhcpcd' ]
+    copy:
+        src: "dhcpcd"
+        dest: "/usr/lib/dhcpcd5/dhcpcd"
+        owner: root
+        group: root
+        mode: 0755
+        backup: yes
+
+  # set static addr before dhcpd config to prevent failure
+  - name: set wlan0 to static IP addr from /etc/network/interfaces
+    become: true
+    tags: [ 'dhcpd', 'addr' ]
+    shell: |
+      ifconfig wlan0 192.168.42.1
+      #ifconfig wlan0 inet6 add fc00::6666/64
+    args:
+      creates: /tmp/ansible_dhcpd_addr
+
+  #
+  # configure dhcpd from isc-dhcp-server
+  # use man dhcpd.conf for more info
+  #
+  - name: tweak dhcpd.conf - unset preset domain-name
+    become: true
+    tags: [ 'dhcpd', 'domain-name' ]
+    replace:
+        dest: "/etc/dhcp/dhcpd.conf"
+        regexp: '^option domain-name "example\.org";'
+        replace: '#option domain-name "example.org";'
+    notify: restart dhcpd
+
+  - name: tweak dhcpd.conf - unset preset domain-name-servers
+    become: true
+    tags: [ 'dhcpd', 'domain-name-servers' ]
+    replace:
+        dest: "/etc/dhcp/dhcpd.conf"
+        regexp: '^option domain-name-servers (.*);$'
+        replace: '#option domain-name-servers \1;'
+    notify: restart dhcpd
+
+  - name: tweak dhcpd.conf - set authoritative flag
+    become: true
+    tags: [ 'dhcpd', 'authoritative' ]
+    replace:
+        dest: "/etc/dhcp/dhcpd.conf"
+        regexp: '^#authoritative;$'
+        replace: 'authoritative;'
+    notify: restart dhcpd
+
+  - name: tweak dhcpd.conf - add new subnet
+    become: true
+    tags: [ 'dhcpd', 'subnet' ]
+    blockinfile:
+        dest: "/etc/dhcp/dhcpd.conf"
+        block: |
+            subnet 192.168.42.0 netmask 255.255.255.0 {
+                   authoritative;
+                   range 192.168.42.10 192.168.42.50;
+                   default-lease-time 600;
+                   max-lease-time 7200;
+                   option subnet-mask 255.255.255.0;
+                   option broadcast-address 192.168.42.255;
+                   option routers 192.168.42.1;
+                   option domain-name "local";
+                   option domain-name-servers {{ dns_servers }};
+            }
+    notify: restart dhcpd
+
+  - name: set wlan0 as dhcp-serviced device for ipv4
+    become: true
+    tags: [ 'dhcpd', 'INTERFACESv4' ]
+    replace:
+        dest: "/etc/default/isc-dhcp-server"
+        regexp: '^INTERFACESv4=""'
+        replace: 'INTERFACESv4="wlan0"'
+    notify: restart dhcpd
+
+  - name: set wlan0 as dhcp-serviced device for ipv6
+    become: true
+    tags: [ 'never', 'INTERFACESv6' ]
+    replace:
+        dest: "/etc/default/isc-dhcp-server"
+        regexp: '^INTERFACESv6=""'
+        replace: 'INTERFACESv6="wlan0"'
+    notify: restart dhcpd
+
+  - name: setup static ip config for wlan0
+    become: true
+    tags: [ 'dhcpd', 'interfaces' ]
+    copy:
+        src: "interfaces_onionpi.tmpl"
+        dest: "/etc/network/interfaces"
+        owner: root
+        group: root
+        mode: 0644
+        backup: yes
+
+  #
+  # configure hostapd
+  #
+  - name: install hostapd.conf
+    become: true
+    tags: [ 'hostapd', 'conf' ]
+    copy:
+        src: "hostapd.conf.onionpi.tmpl"
+        dest: "/etc/hostapd/hostapd.conf"
+        owner: root
+        group: root
+        mode: 0600
+        backup: yes
+    notify: restart hostapd
+
+  - name: tell hostapd.conf location
+    become: true
+    tags: [ 'hostapd', 'path' ]
+    replace:
+        dest: "/etc/default/hostapd"
+        regexp: '^#DAEMON_CONF=""'
+        replace: 'DAEMON_CONF="/etc/hostapd/hostapd.conf"'
+    notify: restart hostapd
+
+  #
+  # install tor and related fw rules
+  #
+  - name: tweak torrc
+    become: true
+    tags: [ 'torrc' ]
+    blockinfile:
+        dest: "/etc/tor/torrc"
+        #insertafter: "^## https://www.torproject.org/docs/faq#torrc"
+        block: |
+            Log notice file /var/log/tor/notices.log
+            VirtualAddrNetwork 10.192.0.0/10
+            AutomapHostsSuffixes .onion,.exit
+            AutomapHostsOnResolve 1
+            TransPort 192.168.42.1:9040
+            DNSPort 192.168.42.1:53
+        backup: yes
+    notify: restart tor
+
+  #
+  # iptables-persistent should install the service netfilter-persistent, which reads the rules on boot
+  #
+  - name: install ipv4 firewall rules
+    become: true
+    tags: [ 'firewall' ]
+    copy:
+        src: "rules_onionpi.v4"
+        dest: "/etc/iptables/rules.v4"
+        owner: root
+        group: root
+        mode: 0640
+        backup: yes
+#    notify: restart netfilter-persistent

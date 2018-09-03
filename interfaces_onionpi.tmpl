@@ -1,0 +1,35 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+# interfaces(5) file used by ifup(8) and ifdown(8)
+#
+# Please note that this file is written to be used with dhcpcd
+# For static IP, consult /etc/dhcpcd.conf and 'man dhcpcd.conf'
+
+# Include files from /etc/network/interfaces.d:
+source-directory /etc/network/interfaces.d
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# if this is uncommented, dhcpcd will use dhclient to configure the address, which doesn't seem to be default
+#auto eth0
+#iface eth0 inet dhcp
+
+# wlan0 should be the built-in WiFi, if the pinning worked properly
+# this interface will be our hotspot server, so gets a static config
+auto wlan0
+iface wlan0 inet static
+    address 192.168.42.1
+    netmask 255.255.255.0
+#iface wlan0 inet6 static
+#    address fc00::6666
+#    netmask 64
+#    autoconf 1
+
+# wlan1 should be the USB WiFi, if the pinning worked properly
+# this interface will be our client, as it likely has a longer range radio antenna
+allow-hotplug wlan1
+iface wlan1 inet manual
+    wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+
