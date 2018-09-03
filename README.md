@@ -11,12 +11,12 @@ at end of this document for details.
 
 We will make use of
 
-* 1 RaspberryPi 3
+* 1 RaspberryPi B ver 3 or 3+ (with onboard WiFi)
 * 1 micro SD card (min. 4 GB)
-* 1 USB wifi adapter
 * 1 power adapter
 * 1 keyboard (USB preferred)
 * 1 TV or other device able to display HDMI signals from your RaspberryPi
+* 1 USB wifi adapter (optional)
 
 To setup everything, we additionally need a computer with USB and an SD-card
 reader. If your computer does not have a built-in card-reader, you can use any
@@ -118,9 +118,9 @@ You should change the ``--extra-vars`` as appropriate.
        setup_basic.yml \
        --extra-vars "username=jason password=YOUR_SECRET hostname=onionpi timezone=America/Los_Angeles country=US"
 
-### 4) Setup Mail Config
+### 4) Setup Mail Config (Optional)
 
-Having the pi email you when normal system maintenance jobs run is very helpful for debugging and monitoring, and is highly recommended.
+This step is not required.  Having the pi email you when normal system maintenance jobs run is very helpful for debugging and monitoring, and is highly recommended.  This setup uses an app-specific password you create for your Gmail account.
 
     ansible-playbook -i 192.168.1.131, \
       --become \
@@ -132,9 +132,9 @@ Having the pi email you when normal system maintenance jobs run is very helpful 
 
 If you don't have a gmail account, you'll need to edit the yml script to change the ``@gmail.com`` domain appropriately.
 
-### 5) Setup WiFi Hotspot
+### 5) Setup WiFi OnionPi
 
-This last step is a placeholder for actually getting the OnionPi working, but does demonstrate that the wifi access point feature is functional.  This sets up the pi as an access point in standalone network (NAT) mode as documented [here](https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md).
+This sets up the pi as an access point in standalone network (NAT) mode as documented [here](https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md).
 
     ansible-playbook -i 192.168.1.131, \
       --become \
@@ -144,12 +144,56 @@ This last step is a placeholder for actually getting the OnionPi working, but do
       setup_onionpi.yml \
       --extra-vars "dns_servers=8.8.8.8,8.8.4.4"
 
-Reboot the pi, and attempt to connect to it from another computer via WiFi, to verify that it's acting as an access point.
+Reboot the pi, and attempt to connect to it from another computer via WiFi, to verify that it's acting as an access point.  Open a browser and navigate to the [tor check page](https://check.torproject.org/) to verify that your Tor proxy is working.  Generally, you should use an incognito window (with no plugins enabled, or logged in cookies set), when you do this, otherwise your identity may be read from the exit node.
 
+## Access your `OnionPi`
 
+Did it work? You can try with your laptop.
 
+First, look what networks are available to connect to. There should be an
+additional network called ``OnionPi``. Connect to it.
 
-### 3) Setup first Wifi
+The network is encrypted and therefore we need a password. The default password is
+
+    AardvarkBadgerHedgehog
+
+and set in `/etc/hostapd/hostapd.conf`.
+
+If you can connect to the network, try to browse some site. As `ping` does not
+work, you can for instance browse
+
+    https://check.torproject.org
+
+to check under which IP you are seen in the internet. This page can tell
+whether you look like using `tor` or not. It might also complain that you do
+not use the `torbrowser`.
+
+# Differences to Regular Adafruit Onion-pi Setup
+
+The deployment shown here tries to follow closely the more or less canonical
+'Adafruit' recipe as described at:
+
+    https://learn.adafruit.com/onion-pi/overview
+
+Some things, however, were changed:
+
+- IPv4 forwarding is not activated. Instead we make sure its turned off.
+
+  There is no reason to forward all ipv4 packets if they cannot be handled as
+  regular tor traffic.
+
+- `/etc/init.d/hostapd` script is not changed.
+
+  We do not set a default `DAEMON_CONF` in the init.d-script, because this
+  value should be set only in `/etc/default/hostapd`.
+
+- We additionally install and configure `unattended-upgrades`.
+
+  Updates are triggered by a cronjob every other hour.
+
+## Setup USB Wifi (Optional)  (this section is incomplete!)
+
+This optional step allows you to avoid the the need for an ethernet connection.  The USB WiFi device (wlan1 in this case) is used to connect to the upstream network (like a coffee house hotspot), while the onboard WiFi (wlan0) is used as a hotspot for WiFi clients (like your phone or laptop).
 
 If not done already, plug in the USB wifi adapter into your raspi.
 
@@ -200,47 +244,18 @@ Now try to connect to your gogoonion via SSH:
 
     $ ssh pi@<IP-OF-YOUR-RASPBERRY-PI>
 
-## Access your `gogoonion`
+## Appendix
 
-Did it work? You can try with your laptop.
+### Setup the Pi as a WiFi Hotspot
 
-First, look what networks are available to connect to. There should be an
-additional network called ``gogoonion``. Connect to it.
+This ansible playbook sets up the pi as an access point in standalone network (NAT) mode as documented [here](https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md).  This is an example of using dnsmasq instead of isc-dhcp-server as the DHCP server.  Replacing isc-dhcp-server for an onionpi config is left as an excercise for the reader, but this playbook is a good starting point.
 
-The network is encrypted and therefore we need a password. The default password is
+    ansible-playbook -i 192.168.1.131, \
+      --become \
+      --ask-pass \
+      --ask-become-pass \
+      --user jason \
+      setup_accesspoint.yml \
+      --extra-vars "dns_servers=8.8.8.8,8.8.4.4"
 
-    tor
-
-and set in `/etc/hostapd/hostapd.conf`.
-
-If you can connect to the network, try to browse some site. As `ping` does not
-work, you can for instance browse
-
-    https://check.torproject.org
-
-to check under which IP you are seen in the internet. This page can tell
-whether you look like using `tor` or not. It might also complain that you do
-not use the `torbrowser`.
-
-# Differences to Regular Adafruit Onion-pi Setup
-
-The deployment shown here tries to follow closely the more or less canonical
-'Adafruit' recipe as described at:
-
-    https://learn.adafruit.com/onion-pi/overview
-
-Some things, however, were changed:
-
-- IPv4 forwarding is not activated. Instead we make sure its turned off.
-
-  There is no reason to forward all ipv4 packets if they cannot be handled as
-  regular tor traffic.
-
-- `/etc/init.d/hostapd` script is not changed.
-
-  We do not set a default `DAEMON_CONF` in the init.d-script, because this
-  value should be set only in `/etc/default/hostapd`.
-
-- We additionally install and configure `unattended-upgrades`.
-
-  Updates are triggered by a cronjob every other hour.
+Reboot the pi, and attempt to connect to it from another computer via WiFi, to verify that it's acting as an access point.
