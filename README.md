@@ -146,7 +146,7 @@ This sets up the pi as an access point in standalone network (NAT) mode as docum
 
 Reboot the pi, and attempt to connect to it from another computer via WiFi, to verify that it's acting as an access point.  Open a browser and navigate to the [tor check page](https://check.torproject.org/) to verify that your Tor proxy is working.  Generally, you should use an incognito window (with no plugins enabled, or logged in cookies set), when you do this, otherwise your identity may be read from the exit node.
 
-## Access your `OnionPi`
+### 6) Access your `OnionPi`
 
 Did it work? You can try with your laptop.
 
@@ -168,7 +168,7 @@ to check under which IP you are seen in the internet. This page can tell
 whether you look like using `tor` or not. It might also complain that you do
 not use the `torbrowser`.
 
-# Differences to Regular Adafruit Onion-pi Setup
+## Differences to Regular Adafruit Onion-pi Setup
 
 The deployment shown here tries to follow closely the more or less canonical
 'Adafruit' recipe as described at:
@@ -244,9 +244,9 @@ Now try to connect to your gogoonion via SSH:
 
     $ ssh pi@<IP-OF-YOUR-RASPBERRY-PI>
 
-## Appendix
+# Appendix
 
-### Setup the Pi as a WiFi Hotspot
+## Setup the Pi as a WiFi Hotspot
 
 This ansible playbook sets up the pi as an access point in standalone network (NAT) mode as documented [here](https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md).  This is an example of using dnsmasq instead of isc-dhcp-server as the DHCP server.  Replacing isc-dhcp-server for an onionpi config is left as an excercise for the reader, but this playbook is a good starting point.
 
