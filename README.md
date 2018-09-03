@@ -191,6 +191,8 @@ Some things, however, were changed:
 
   Updates are triggered by a cronjob every other hour.
 
+- A new user is created, and the pi user is disabled for SSH
+
 ## Setup USB Wifi (Optional)  (this section is incomplete!)
 
 This optional step allows you to avoid the the need for an ethernet connection.  The USB WiFi device (wlan1 in this case) is used to connect to the upstream network (like a coffee house hotspot), while the onboard WiFi (wlan0) is used as a hotspot for WiFi clients (like your phone or laptop).
@@ -240,7 +242,7 @@ where `wlan0` is the interface name displayed before.
 There should be one line starting with `inet` or `inet6` stating the current
 IP.
 
-Now try to connect to your gogoonion via SSH:
+Now try to connect to your onionpi via SSH:
 
     $ ssh pi@<IP-OF-YOUR-RASPBERRY-PI>
 
