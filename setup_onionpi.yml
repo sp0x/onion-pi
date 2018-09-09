@@ -81,7 +81,7 @@
     become: true
     tags: [ 'dhcpcd' ]
     copy:
-        src: "dhcpcd"
+        src: "onionpi/dhcpcd"
         dest: "/usr/lib/dhcpcd5/dhcpcd"
         owner: root
         group: root
@@ -170,7 +170,7 @@
     become: true
     tags: [ 'dhcpd', 'interfaces' ]
     copy:
-        src: "interfaces_onionpi.tmpl"
+        src: "onionpi/interfaces.tmpl"
         dest: "/etc/network/interfaces"
         owner: root
         group: root
@@ -184,7 +184,7 @@
     become: true
     tags: [ 'hostapd', 'conf' ]
     copy:
-        src: "hostapd.conf.onionpi.tmpl"
+        src: "onionpi/hostapd.conf.tmpl"
         dest: "/etc/hostapd/hostapd.conf"
         owner: root
         group: root
@@ -227,7 +227,7 @@
     become: true
     tags: [ 'firewall' ]
     copy:
-        src: "rules_onionpi.v4"
+        src: "onionpi/rules.v4"
         dest: "/etc/iptables/rules.v4"
         owner: root
         group: root
