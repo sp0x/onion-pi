@@ -119,7 +119,7 @@
     tags:
       - hostapd-install
     copy:
-        src: "hostapd.conf.tmpl"
+        src: "accesspoint/hostapd.conf.tmpl"
         dest: "/etc/hostapd/hostapd.conf"
         owner: root
         group: root
@@ -158,7 +158,7 @@
     tags:
       - firewall-rules
     copy:
-        src: "rules.v4"
+        src: "accesspoint/rules.v4"
         dest: "/etc/iptables/rules.v4"
         owner: root
         group: root
@@ -184,7 +184,7 @@
     tags:
       - interfaces
     copy:
-        src: "interfaces.tmpl"
+        src: "accesspoint/interfaces.tmpl"
         dest: "/etc/network/interfaces"
         owner: root
         group: root
