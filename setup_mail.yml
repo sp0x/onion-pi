@@ -38,7 +38,7 @@
   - name: setup exim4-config /etc/exim4/update-exim4.conf.conf
     become: true
     template:
-        src: "update-exim4.conf.conf.j2"
+        src: "mail/update-exim4.conf.conf.j2"
         dest: "/etc/exim4/update-exim4.conf.conf"
         owner: root
         group: root
@@ -57,7 +57,7 @@
   - name: setup mail /etc/aliases
     become: true
     template:
-        src: "aliases.j2"
+        src: "mail/aliases.j2"
         dest: "/etc/aliases"
         owner: root
         group: root
