@@ -134,7 +134,7 @@ If you don't have a gmail account, you'll need to edit the yml script to change 
 
 ### 5) Setup WiFi OnionPi
 
-This sets up the pi as an access point in standalone network (NAT) mode as documented [here](https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md).
+This sets up the pi as an access point in standalone network (NAT) mode as [documented by Adafruit](https://learn.adafruit.com/onion-pi?view=all), but setup to work with Raspbian Stretch.
 
     ansible-playbook -i 192.168.1.131, \
       --become \
