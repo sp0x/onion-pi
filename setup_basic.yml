@@ -41,7 +41,10 @@
       - timezone
     shell: |
       echo {{ timezone }} > /etc/timezone
-      cp /usr/share/zoneinfo/`cat /etc/timezone` /etc/localtime
+      #cp /usr/share/zoneinfo/`cat /etc/timezone` /etc/localtime
+      unlink /etc/localtime
+      rm /etc/localtime
+      ln -s /usr/share/zoneinfo/`cat /etc/timezone` /etc/localtime
       touch /tmp/ansible_timezone
     args:
       creates: /tmp/ansible_timezone
