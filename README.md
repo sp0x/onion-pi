@@ -39,7 +39,7 @@ Check the sha1 sum of the file:
     openssl sha -sha256 2018-06-27-raspbian-stretch-lite.zip | grep 3271b244734286d99aeba8fa043b6634cad488d211583814a2018fc14fdca313
 
 and make sure it equals the number given on the website (grep prints that hash).
-    
+
 
 ### 2) Write the image on OSX
 
@@ -63,6 +63,31 @@ Note that the /dev/rdisk4 is different from /dev/disk4 in that rdisk doesn't buf
 Then eject the disk:
 
     sudo diskutil eject /dev/rdisk4
+
+### 2.1) Headless Network Configuration
+
+Once writing completes, the disk should automount the ```/boot``` partition.
+
+To enable headless configuration (so keyboard, mouse, and monitor aren't needed) ssh needs to be enabled and the WiFi config needs to be made available.
+
+Enable ssh on first boot by writing an empty file named ssh to the partition:
+
+    touch /Volumes/boot/ssh
+
+Enable WiFi on first boot by writing a wpa_supplicant.conf file to the same boot partition:
+
+		ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+		update_config=1
+		country=US
+
+		#device_name=Raspberry Pi
+		#manufacturer=Raspberry Pi Foundation
+
+		network={
+			ssid="MY_SSID"
+			psk="MY_SSID_SECRET"
+			key_mgmt=WPA-PSK
+		}
 
 ### 3) Install Ansible from Homebrew
 
