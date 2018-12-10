@@ -1,5 +1,14 @@
 # This ansible playbook performs setup of a
-# RaspberryPi providing a tor-proxied wifi accesspoint.
+# RaspberryPi providing a wifi accesspoint bridge.
+#
+# For a Pi 3 Model A+, with built in wlan0, and no eth0,
+# a wlan1 must be supplied in the USB port. wlan0 will be the AP,
+# and wlan1 will be the client to the other network (replacing eth0 on the B).
+#
+# To create a monitor, comment out "denyinterfaces wlan0", and use
+# --tags "update,install,pin-wifi,dhcpcd,dnsmasq,hostapd-install,hostapd-location"
+# Uncomment the hostapd.conf driver=nl80211, and comment bridge=br0
+#
 #
 # Call from remote:
 #
@@ -67,7 +76,6 @@
         - "iptables-persistent"
         - "bridge-utils"
         - "hostapd"
-        - "tor"
 
   #
   # Pin wlan device names
@@ -93,7 +101,7 @@
         dest: "/etc/dhcpcd.conf"
         block: |
             denyinterfaces wlan0
-            denyinterfaces eth0
+            denyinterfaces wlan1
 
             interface wlan0
                 static ip_address=192.168.4.1/24
@@ -174,7 +182,7 @@
       - add-bridge
     shell: |
       brctl addbr br0
-      brctl addif br0 eth0
+      brctl addif br0 wlan1
       touch /tmp/br0_exists
     args:
       creates: /tmp/br0_exists
@@ -191,39 +199,3 @@
         mode: 0644
         backup: yes
 
-  #
-  # install tor and related fw rules
-  #
-  - name: tweak torrc
-    become: true
-    tags:
-      - torrc
-    blockinfile:
-        dest: "/etc/tor/torrc"
-        #insertafter: "^## https://www.torproject.org/docs/faq#torrc"
-        block: |
-            Log notice file /var/log/tor/notices.log
-            VirtualAddrNetwork 10.192.0.0/10
-            AutomapHostsSuffixes .onion,.exit
-            AutomapHostsOnResolve 1
-            TransPort 192.168.42.1:9040
-            DNSPort 192.168.42.1:53
-        backup: yes
-#    notify: restart tor
-
-  #
-  # activate new services
-  #
-#  - name: enable service hostapd
-#    become: true
-#    systemd:
-#        name: hostapd
-#        state: started
-#        enabled: true
-#
-#  - name: enable service tor
-#    become: true
-#    systemd:
-#        name: tor
-#        state: started
-#        enabled: true
