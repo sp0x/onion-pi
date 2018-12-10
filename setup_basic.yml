@@ -63,7 +63,7 @@
     tags:
       - wificountry
     shell: |
-      echo US={{ country }} >> /etc/wpa_supplicant/wpa_supplicant.conf
+      echo country={{ country }} >> /etc/wpa_supplicant/wpa_supplicant.conf
       touch /tmp/ansible_wificountry
     args:
       creates: /tmp/ansible_wificountry
