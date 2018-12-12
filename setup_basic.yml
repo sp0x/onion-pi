@@ -34,6 +34,7 @@
         - "git"
         - "unattended-upgrades"
         - "apt-listchanges"
+        - "screen"
 
   - name: set timezone and localtime
     become: true
